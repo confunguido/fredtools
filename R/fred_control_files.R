@@ -52,6 +52,8 @@ write_fred_parameters = function(scalars.in, defaults.file, dir.in, basename.in=
     }
     in_template = colnames(scalars.in) %in% defaults_df$Param
     in_defaults = colnames(scalars.in) %in% fred_defaults_df$Param
+    in_synthpop = "synthetic_population_id" %in% colnames(scalars.in)
+    
     for(nn in 1:nrow(scalars.in)){
         params_file = sprintf("%s/%s_%i.txt",dir.in,basename.in, nn)
         
@@ -61,18 +63,29 @@ write_fred_parameters = function(scalars.in, defaults.file, dir.in, basename.in=
         file.connection = file(params_file, "a")
         for(k in 1:nrow(defaults_df)){
             kk = defaults_df$Param[k]
-            if(defaults_df$Value[k] == ''){
+            if(str_detect(kk,'synthetic_population_id') && in_synthpop){
+                next
+            }
+            if(defaults_df$Value[k] == ''){                
                 write(defaults_df$Param[k], file.connection, append = TRUE)
             }else if(kk %in% colnames(scalars.in)){
                 write(sprintf("%s = %s ", kk, as.character(scalars.in[nn,kk])),file.connection, append = TRUE)
             }else{
                 write(sprintf("%s = %s ", kk, defaults_df$Value[k]),file.connection, append = TRUE)
             }
-        }        
+        }
+        
         for(k in 1:length(in_template)){
             if(in_template[k] == FALSE && in_defaults[k] == TRUE){
-                write(sprintf("%s = %s ", colnames(scalars.in)[k], as.character(scalars.in[nn,k])),file.connection, append = TRUE)
+                if(!(str_detect(colnames(scalars.in)[k],'synthetic_population_id') && in_synthpop)){
+                    write(sprintf("%s = %s ", colnames(scalars.in)[k],
+                                  as.character(scalars.in[nn,k])),file.connection, append = TRUE)
+                }
             }
+        }
+
+        if(in_synthpop){
+            write(scalars.in$synthetic_population_id[nn],file.connection, append = TRUE)
         }
         close(file.connection)
     }
