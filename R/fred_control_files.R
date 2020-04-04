@@ -126,8 +126,6 @@ write_submission_array = function(experiment_supername_in,
     FUN(scalars, tmp_cmd_file)    
     n = nrow(scalars)
     submission_template = "#!/bin/csh
-#$ -M gcamargo@nd.edu
-#$ -m a
 #$ -q long
 #$ -t 1:JOBSQUEUE:1
 #$ -N JOBNAME
