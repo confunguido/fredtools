@@ -244,7 +244,7 @@ fred_gather_data <- function(params,outdir, outfile,
         mutate(Finished = 0)
 
     for(n in 1:nrow(params_orig)){
-        if(FUN(params_orig$job_id[n])){
+        if(FUN(params_orig[n,])){
             params_orig$Finished[n] = 1
             job_processed = FUN2(params_orig$job_id[n]) %>%
                 mutate(job_id = params_orig$job_id[n])

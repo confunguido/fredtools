@@ -114,32 +114,96 @@ calculate_intervals <- function(fred_key, fred_n){
     params_file = file.path(system(sprintf("fred_find -k %s", fred_key), intern = TRUE),
                             "META", "PARAMS")
 
-    infections = read_delim(file=file.path(data_dir, sprintf("infections%d.txt",fred_n)),col_names = F, delim = " ",col_types = cols(.default = "c"))
+    infections = readr::read_delim(file=file.path(data_dir, sprintf("infections%d.txt",fred_n)),col_names = F, delim = " ",col_types = cols(.default = "c"))
+
     
-    cols_req = c('day', 'host','infector')
-    names_ind = which(as.character(infections[1,]) %in% cols_req) + 1
+    conn_inf = file(file.path(data_dir, sprintf("infections%d.txt",fred_n)), "r")
+    inf_lines = readLines(conn_inf)
+    close(conn_inf)
     
+    cols_req = c('day', 'host','age','infector')        
     cols_vec = c('inf','symp')
-    names_vec = rep(which(as.character(infections[1,]) %in% cols_vec),each=2) + rep(c(1,2),2)
+    names_periods = c('inf1', 'inf2','symp1','symp2')
     
-    infections_df = infections[,names_ind]
-    colnames(infections_df) = cols_req
+
+    ## Only simulate MSA areas with all counties in pop
+    infections = data.frame(stringsAsFactors=F)
+
+    infections = sapply(1:length(inf_lines), function(x){
+        inf_list = str_split(inf_lines[x], pattern="\\s+")[[1]]
+        names_ind = which(inf_list %in% cols_req) + 1
+        names_vec = rep(which(inf_list %in% cols_vec),each=2) + rep(c(1,2),2)
+        tmp_df = inf_list[c(names_ind,names_vec)]
+        return(tmp_df)
+    })
+    infections = t(infections)
+    names(infections) = c(cols_req, names_periods)
+    infections = as.data.frame(infections, stringsAsFactors = F)
+    colnames(infections) = c(cols_req, names_periods)
+            
+    infections_df = infections[,cols_req]
     infections_df$day = as.numeric(infections_df$day)
+    infections_df$age = floor(as.numeric(infections_df$age))
     
-    periods_df = infections[,names_vec]
-    colnames(periods_df) = c('inf1','inf2','symp1','symp2')
+    periods_df = infections[,names_periods]
     infections_df$symp = as.numeric(periods_df$symp1)
     periods_df$host = infections_df$host
+    periods_df$age = infections_df$age
     
     periods_df = mutate(periods_df,
                         inf1 = as.numeric(inf1), inf2 = as.numeric(inf2),
                         symp1 = as.numeric(symp1), symp2 = as.numeric(symp2)) %>%
         filter(inf1 != -1 & inf2 != -1 & symp1 != -1 & symp2 != -1) %>%
         mutate(inf_period = inf2 - inf1, symp_period = symp2 - symp1) %>%
-        dplyr::select(host,inf_period, symp_period)
+        dplyr::select(host,age,inf_period, symp_period)
     
     intervals_df = left_join(infections_df, infections_df,
                              by = c("infector" = "host"), suffix = c('','_infector')) %>%
         filter(infector != "-1", symp != -1, symp_infector != -1) 
     return(list(periods = periods_df, intervals = intervals_df))
+}
+
+
+#' calculate CF intervals
+#' calculate delays of CF from symptoms and infection
+#' 
+#' @param fred_key key of fred job
+#' @param fred_n replicate of the FRED job to calculate R0 over
+#' @return a list of dataframes: periods has the inf and symp periods, intervals the serial intervals
+#' @export
+#' @examples
+#' calculate_CF_intervals('test_cf_intervals', 1)
+calculate_CF_intervals <- function(fred_key, fred_n){
+    ## calculate infectious period
+    data_dir = file.path(system(sprintf("fred_find -k %s", fred_key), intern = TRUE),
+                         "DATA", "OUT")        
+    
+    cols_req = c('day', 'age', 'exp', 'inf', 'symp','dead')
+
+    
+    conn_inf = file(file.path(data_dir, sprintf("infectionsCF%d.txt",fred_n)), "r")
+    inf_lines = readLines(conn_inf)
+    close(conn_inf)
+    
+    infections_cf = data.frame(stringsAsFactors=F)
+    infections_cf = sapply(1:length(inf_lines), function(x){
+        inf_list = str_split(inf_lines[x], pattern="\\s+")[[1]]
+        names_ind = which(inf_list %in% cols_req) + 1
+        tmp_df = inf_list[c(names_ind)]
+        return(tmp_df)
+    })
+    infections_cf = t(infections_cf)
+    names(infections_cf) = c(cols_req)
+    infections_cf = as.data.frame(infections_cf, stringsAsFactors = F)
+    colnames(infections_cf) = c(cols_req)    
+    
+    infections_df = infections_cf[,cols_req]
+    infections_df$day = as.numeric(infections_df$day)
+    infections_df$age = floor(as.numeric(infections_df$age))
+    infections_df$exp = as.numeric(infections_df$exp)
+    infections_df$inf = as.numeric(infections_df$inf)
+    infections_df$symp = as.numeric(infections_df$symp)
+    infections_df$dead = as.numeric(infections_df$dead)
+    
+    return(infections_df)
 }
