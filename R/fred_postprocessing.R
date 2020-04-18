@@ -27,6 +27,11 @@ calculate_fred_R0 <- function(fred_key, fred_n){
     
     for(nn in 1:fred_n){
         RR_tmp =  calculate_R0(data_dir, nn)
+        if(nrow(RR_tmp$Rt_df) == 0){
+            write_csv(tibble(Day = 1:sim_days,Rt_mean = 0, Rt_std = 0), path=file.path(data_dir,"Rt_estimates_weekly.csv"))
+            write_csv(tibble(Day = 1:sim_days,Rt_mean = 0, Rt_std = 0), path=file.path(data_dir,"Rt_estimates_daily.csv"))
+            return(tibble(Day = 1:sim_days,Rt_mean = 0, Rt_std = 0))
+        }
         RR_df = bind_rows(RR_df, RR_tmp$Rt_df)
         RR_weekly = bind_rows(RR_weekly, RR_tmp$Rt_weekly)    
     }
@@ -64,7 +69,9 @@ calculate_fred_R0 <- function(fred_key, fred_n){
 #' calculate_R0('FRED_RESULTS/JOB/1/DATA/OUT/', 1)
 calculate_R0 <- function(data_dir_in, n_in){
     infections = read_delim(file=file.path(data_dir_in, sprintf("infections%d.txt",n_in)),col_names = F, delim = " ")
-    
+    if(nrow(infections) == 0){
+        return(list(Rt_df = tibble(), Rt_weekly = tibble()))
+    }
     cols_req = c('day', 'host','infector')
     names_ind = which(as.character(infections[1,]) %in% cols_req) + 1
     
@@ -116,6 +123,9 @@ calculate_intervals <- function(fred_key, fred_n){
 
     infections = readr::read_delim(file=file.path(data_dir, sprintf("infections%d.txt",fred_n)),col_names = F, delim = " ",col_types = cols(.default = "c"))
 
+    if(nrow(infections) == 0){
+        return(list(periods = tibble(), intervals = tibble()))
+    }
     
     conn_inf = file(file.path(data_dir, sprintf("infections%d.txt",fred_n)), "r")
     inf_lines = readLines(conn_inf)
@@ -184,7 +194,10 @@ calculate_CF_intervals <- function(fred_key, fred_n){
     conn_inf = file(file.path(data_dir, sprintf("infectionsCF%d.txt",fred_n)), "r")
     inf_lines = readLines(conn_inf)
     close(conn_inf)
-    
+
+    if(length(inf_lines) == 0){
+        return(tibble())
+    }
     infections_cf = data.frame(stringsAsFactors=F)
     infections_cf = sapply(1:length(inf_lines), function(x){
         inf_list = str_split(inf_lines[x], pattern="\\s+")[[1]]
