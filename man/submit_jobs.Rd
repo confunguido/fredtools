@@ -5,23 +5,11 @@
 \title{submits jobs to cluster
 This function takes specific parameters and creates the submission script that can be used later on to submit a job array of simulations}
 \usage{
-submit_jobs(
-  experiment_supername_in,
-  experiment_name_in,
-  experiment_dir_in,
-  params_base,
-  job_base,
-  reps,
-  scalars,
-  FUN,
-  cores_in = 1,
-  delete_files = F,
-  sub_array = T,
-  subsys = "UGE",
-  walltime_in = "0:45:00",
-  fred_home_dir_in = "~/Coronavirus/FRED",
-  fred_results_in = "~/Coronavirus/FRED_RESULTS"
-)
+submit_jobs(experiment_supername_in, experiment_name_in, experiment_dir_in,
+  params_base, job_base, reps, scalars, FUN, cores_in = 1,
+  delete_files = F, sub_array = T, subsys = "UGE",
+  walltime_in = "0:45:00", fred_home_dir_in = "~/Coronavirus/FRED",
+  fred_results_in = "~/Coronavirus/FRED_RESULTS")
 }
 \arguments{
 \item{experiment_supername_in}{input the main name of the experiment, assuming there will be subexperiments for each submission}

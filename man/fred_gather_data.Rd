@@ -4,14 +4,8 @@
 \alias{fred_gather_data}
 \title{fred_gather_data}
 \usage{
-fred_gather_data(
-  params,
-  outdir,
-  outfile,
-  FUN,
-  FUN2 = function(x) {     return(x) },
-  rm_out = FALSE
-)
+fred_gather_data(params, outdir, outfile, FUN, FUN2 = function(x) {    
+  return(x) }, rm_out = FALSE)
 }
 \arguments{
 \item{params}{parameters of the simulation}

@@ -4,13 +4,9 @@
 \alias{write_fred_parameters}
 \title{write_fred_parameters}
 \usage{
-write_fred_parameters(
-  scalars.in,
-  defaults.file,
-  dir.in,
+write_fred_parameters(scalars.in, defaults.file, dir.in,
   basename.in = "fred_params",
-  fred_defaults = "./FRED/input_files/defaults"
-)
+  fred_defaults = "./FRED/input_files/defaults")
 }
 \arguments{
 \item{scalars.in}{data frame with parameters}
