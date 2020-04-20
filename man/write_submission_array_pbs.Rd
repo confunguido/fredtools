@@ -5,11 +5,28 @@
 \title{Writes a submission script for a job array
 This function takes specific parameters and creates the submission script that can be used later on to submit a job array of simulations}
 \usage{
+<<<<<<< HEAD
 write_submission_array_pbs(experiment_supername_in, experiment_name_in,
   experiment_dir_in, params_base, job_base, reps, scalars, FUN,
   cores_in = 1, walltime_in = "0:45:00",
   fred_home_dir_in = "~/Coronavirus/FRED",
   fred_results_in = "~/Coronavirus/FRED_RESULTS")
+=======
+write_submission_array_pbs(
+  experiment_supername_in,
+  experiment_name_in,
+  experiment_dir_in,
+  params_base,
+  job_base,
+  reps,
+  scalars,
+  FUN,
+  cores_in = 1,
+  walltime_in = "0:45:00",
+  fred_home_dir_in = "~/Coronavirus/FRED",
+  fred_results_in = "~/Coronavirus/FRED_RESULTS"
+)
+>>>>>>> 8e0ee12ee58d98115df46f95d9722c634fae4cfb
 }
 \arguments{
 \item{experiment_supername_in}{input the main name of the experiment, assuming there will be subexperiments for each submission}
