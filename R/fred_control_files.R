@@ -135,13 +135,15 @@ write_submission_array_pbs = function(experiment_supername_in,
 
 module load R/3.5.0
 
+cd $PBS_O_WORKDIR
+
 export FRED_HOME=FREDHOMESTR
 export FRED_RESULTS=FREDRESULTSSTR
 export PATH=\"${FRED_HOME}/bin:$PATH\"
-export SEMAPHORE_PARAMS=$TMPDIR/.params.lock
-export SEMAPHORE=$TMPDIR/.lock
-
-cd $PBS_O_WORKDIR
+##export SEMAPHORE_PARAMS=$TMPDIR/.params.lock
+##export SEMAPHORE=$TMPDIR/.lock
+export SEMAPHORE_PARAMS=$FRED_RESULTS/.params.lock
+export SEMAPHORE=$FRED_RESULTS/.lock
 
 file='TMPCMDFILE'
 cmd=`head -n $PBS_ARRAYID $file | tail -n 1`

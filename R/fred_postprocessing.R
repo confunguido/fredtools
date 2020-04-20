@@ -15,7 +15,7 @@ calculate_fred_R0 <- function(fred_key, fred_n){
     params_file = file.path(system(sprintf("fred_find -k %s", fred_key), intern = TRUE),
                             "META", "PARAMS")
     
-    sim_days = unlist(str_match(system(sprintf("cat %s | grep -E \"days +=\"", params_file), intern = TRUE),
+    sim_days = unlist(str_match(system(sprintf("cat %s | grep -E \"^days +=\"", params_file), intern = TRUE),
                                 'days\\s+=\\s+([0-9]+)'))[2]
     sim_days = as.integer(sim_days)
     
