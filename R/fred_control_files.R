@@ -201,7 +201,7 @@ write_submission_array = function(experiment_supername_in,
                                   job_base,
                                   reps, scalars, FUN, cores_in=1,
                                   fred_home_dir_in="~/Coronavirus/FRED", fred_results_in="~/Coronavirus/FRED_RESULTS"){
-    print('submit array')    
+    print('submit array')
     jobname = sprintf("%s-%s",experiment_supername_in, experiment_name_in)
     tmp_cmd_file = sprintf('tmp_execute_cmd_%s.txt',jobname)
     FUN(scalars, tmp_cmd_file)    
@@ -340,21 +340,25 @@ fred_gather_data <- function(params,outdir, outfile,
     file.copy(params, file.path(outdir, basename(params)))
     params_orig = read_csv(params) %>%
         mutate(Finished = 0)
-
-    for(n in 1:nrow(params_orig)){
-        if(FUN(params_orig[n,])){
-            params_orig$Finished[n] = 1
-            job_processed = FUN2(params_orig$job_id[n]) %>%
-                mutate(job_id = params_orig$job_id[n])
-            if(file.exists(outfile)){
-                write_csv(job_processed, path=outfile, append = T)
-            }else{
-                write_csv(job_processed, path=outfile, append = F)
-            }
-        }    
-    }
+    fred_output = tibble()
+    if(file.exists(file.path(Sys.getenv('FRED_RESULTS'),'KEY'))){
+        for(n in 1:nrow(params_orig)){
+            if(FUN(params_orig[n,])){                
+                params_orig$Finished[n] = 1
+                job_processed = FUN2(params_orig$job_id[n]) %>%
+                    mutate(job_id = params_orig$job_id[n])
+                fred_output = bind_rows(fred_output, job_processed)
+                ## if(file.exists(outfile)){
+                ##     write_csv(job_processed, path=outfile, append = T)
+                ## }else{
+                ##     write_csv(job_processed, path=outfile, append = F)
+                ## }
+            }    
+        }
+    }    
     params_out = filter(params_orig, Finished == 1)
     params_outfile = file.path(outdir, 'FRED_parameters_out.csv')
     write_csv(x=params_out, path=params_outfile)
+    write_csv(fred_output, path=outfile)
     return(0)
 }

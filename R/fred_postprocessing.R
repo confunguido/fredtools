@@ -159,6 +159,12 @@ calculate_intervals <- function(fred_key, fred_n){
     infections_df$symp = as.numeric(periods_df$symp1)
     periods_df$host = infections_df$host
     periods_df$age = infections_df$age
+
+    asymp_periods_df = mutate(periods_df,
+                             inf1 = as.numeric(inf1), inf2 = as.numeric(inf2),
+                             symp1 = as.numeric(symp1), symp2 = as.numeric(symp2)) %>%
+        filter(inf1 != -1 & inf2 != -1) %>%
+        dplyr::select(host,age,inf1,inf2, symp1, symp2)   
     
     periods_df = mutate(periods_df,
                         inf1 = as.numeric(inf1), inf2 = as.numeric(inf2),
@@ -166,11 +172,11 @@ calculate_intervals <- function(fred_key, fred_n){
         filter(inf1 != -1 & inf2 != -1 & symp1 != -1 & symp2 != -1) %>%
         mutate(inf_period = inf2 - inf1, symp_period = symp2 - symp1) %>%
         dplyr::select(host,age,inf_period, symp_period)
-    
+   
     intervals_df = left_join(infections_df, infections_df,
                              by = c("infector" = "host"), suffix = c('','_infector')) %>%
         filter(infector != "-1", symp != -1, symp_infector != -1) 
-    return(list(periods = periods_df, intervals = intervals_df))
+    return(list(periods = periods_df, intervals = intervals_df, asymp_periods_df = asymp_periods_df))
 }
 
 
