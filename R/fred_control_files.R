@@ -199,7 +199,7 @@ write_submission_array = function(experiment_supername_in,
                                   experiment_dir_in,
                                   params_base,
                                   job_base,
-                                  reps, scalars, FUN, cores_in=1,
+                                  reps, scalars, FUN, cores_in=1, walltime_in = "2:00:00",
                                   fred_home_dir_in="~/Coronavirus/FRED", fred_results_in="~/Coronavirus/FRED_RESULTS"){
     print('submit array')
     jobname = sprintf("%s-%s",experiment_supername_in, experiment_name_in)
@@ -211,7 +211,7 @@ write_submission_array = function(experiment_supername_in,
 #$ -t 1:JOBSQUEUE:1
 #$ -N JOBNAME
 #$ -pe smp JOBCORES
-
+#$ -l h_rt=JOBWALLTIME
 setenv FRED_HOME FREDHOMESTR
 setenv PATH \"${FRED_HOME}/bin:$PATH\"
 setenv FRED_RESULTS FREDRESULTSSTR
@@ -230,6 +230,7 @@ eval $cmd
         str_replace_all(pattern="EXPERIMENTDIR", replacement = experiment_dir_in) %>%
         str_replace_all(pattern="FREDHOMESTR", replacement = fred_home_dir_in) %>%
         str_replace_all(pattern="FREDRESULTSSTR", replacement = fred_results_in) %>%
+        str_replace_all(pattern="JOBWALLTIME", replacement = walltime_in) %>%
         str_replace_all(pattern="JOBSQUEUE", replacement = as.character(n)) %>%
         str_replace_all(pattern="PARAMSBASE", replacement = params_base) %>%
         str_replace_all(pattern="JOBBASE", replacement = job_base) %>%
@@ -288,7 +289,7 @@ submit_jobs = function(experiment_supername_in,
                 experiment_dir_in = experiment_dir_in,
                 params_base = params_base,
                 job_base = job_base,
-                reps = reps, scalars = scalars, FUN = FUN, cores_in = cores_in,
+                reps = reps, scalars = scalars, FUN = FUN, cores_in = cores_in, walltime_in=walltime_in,
                 fred_home_dir_in=fred_home_dir_in, fred_results_in=fred_results_in)
         }else if(subsys == "PBS"){
             submission_file = write_submission_array_pbs(
@@ -324,7 +325,7 @@ submit_jobs = function(experiment_supername_in,
 #' @examples
 #' fred_gather_data("parameters.csv", "FRED_Sims_out")
 fred_gather_data <- function(params,outdir, outfile,
-                               FUN, FUN2=function(x){return(x)}, rm_out = FALSE){
+                               FUN, FUN2=function(x){return(x)}, rm_out = FALSE,...){
     if(dir.exists(outdir) & rm_out == TRUE){
         unlink(outdir, recursive = T)
         dir.create(outdir)
@@ -341,24 +342,27 @@ fred_gather_data <- function(params,outdir, outfile,
     params_orig = read_csv(params) %>%
         mutate(Finished = 0)
     fred_output = tibble()
+    params_finished = tibble()
     if(file.exists(file.path(Sys.getenv('FRED_RESULTS'),'KEY'))){
         for(n in 1:nrow(params_orig)){
             if(FUN(params_orig[n,])){                
                 params_orig$Finished[n] = 1
-                job_processed = FUN2(params_orig$job_id[n]) %>%
+                params_tmp = params_orig[n,]
+                job_processed_list = FUN2(params_orig$job_id[n],...)
+                job_processed = job_processed_list$job_df %>%
                     mutate(job_id = params_orig$job_id[n])
-                fred_output = bind_rows(fred_output, job_processed)
-                ## if(file.exists(outfile)){
-                ##     write_csv(job_processed, path=outfile, append = T)
-                ## }else{
-                ##     write_csv(job_processed, path=outfile, append = F)
-                ## }
+                if(length(grep("extra_params_df", names(job_processed_list))) > 0){
+                    params_tmp = bind_cols(params_tmp[rep(1,nrow(job_processed_list$extra_params_df)),],
+                                           job_processed_list$extra_params_df)
+                }
+                ## Can do this faster if initialize object instead of bind_rows
+                params_finished = bind_rows(params_finished, params_tmp)
+                fred_output = bind_rows(fred_output, job_processed)                
             }    
         }
     }    
-    params_out = filter(params_orig, Finished == 1)
     params_outfile = file.path(outdir, 'FRED_parameters_out.csv')
-    write_csv(x=params_out, path=params_outfile)
+    write_csv(x=params_finished, path=params_outfile)
     write_csv(fred_output, path=outfile)
     return(0)
 }
