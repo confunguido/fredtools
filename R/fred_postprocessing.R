@@ -232,7 +232,7 @@ calculate_CF_intervals <- function(fred_key, fred_n){
 #' 
 #' @param fred_key key of fred job
 #' @param fred_n replicate of the FRED job to calculate R0 over
-#' @params age_brks breaks for ages
+#' @param age_brks breaks for ages
 #' @return a list of dataframes: periods has the inf and symp periods, intervals the serial intervals
 #' @export
 #' @examples
