@@ -226,3 +226,68 @@ calculate_CF_intervals <- function(fred_key, fred_n){
     
     return(infections_df)
 }
+
+#' calculate CF by age
+#' Takes the output from infectionsCF and computes the age
+#' 
+#' @param fred_key key of fred job
+#' @param fred_n replicate of the FRED job to calculate R0 over
+#' @params age_brks breaks for ages
+#' @return a list of dataframes: periods has the inf and symp periods, intervals the serial intervals
+#' @export
+#' @examples
+#' calculate_CF_age('test_cf_age', 1, seq(from=0,by=10,to=90))
+calculate_CF_age <- function(fred_key, fred_n, brk_ages_cf_in = c(seq(from=0,by = 10, to = 80), 120)){
+    ## calculate infectious period
+    data_dir = file.path(system(sprintf("fred_find -k %s", fred_key), intern = TRUE),
+                         "DATA", "OUT")        
+    params_file = file.path(system(sprintf("fred_find -k %s", fred_key), intern = TRUE),
+                            "META", "PARAMS")
+    
+    days_sim = unlist(str_match(system(sprintf("cat %s | grep -E \"^days +=\"", params_file), intern = TRUE),
+                                'days\\s+=\\s+([0-9]+)'))[2]
+    days_sim = as.integer(days_sim)
+    cols_req = c("day", "host", "age", "dead")
+    brk_lbls_cf = sprintf("ACF%d_%d", brk_ages_cf_in[-length(brk_ages_cf_in)], brk_ages_cf_in[-1])
+    
+    age_deaths_df = tibble()
+    for(nn in 1:fred_n){
+        age_CF_file = file.path(data_dir, sprintf("infectionsCF%d.txt",nn))
+        print(age_CF_file)
+        conn_age = file(age_CF_file, 'r')
+        age_lines = readLines(conn_age)
+        close(conn_age)
+        if(length(age_lines) == 0){
+            return(tibble())
+        }
+    
+        age_deaths = sapply(1:length(age_lines), function(x){
+            age_list = str_split(age_lines[x], pattern="\\s+")[[1]]
+            names_ind = which(age_list %in% cols_req) + 1
+            tmp_df = age_list[c(names_ind)]
+            return(tmp_df)                                                                                                
+        }) 
+       
+        age_deaths = t(age_deaths)
+        colnames(age_deaths) = cols_req
+        age_deaths = as.data.frame(age_deaths, stringsAsFactors = F)
+        
+        age_deaths_df_tmp = age_deaths %>%
+            mutate(age = floor(as.numeric(age)),
+                   Day = as.numeric(day)) %>%
+            mutate(AgeGroup = as.character(cut(as.numeric(age), brk_ages_cf_in,brk_lbls_cf, include.lowest = T, right = F))) %>%
+            group_by(Day, AgeGroup) %>%
+            summarize(dead = n()) %>%
+            ungroup()  %>%
+            spread(key = AgeGroup, value = dead, fill = 0) %>%
+            arrange(Day) %>%
+            right_join(tibble(Day = 0:days_sim), by = "Day") %>%
+            replace(., is.na(.), 0)
+        age_deaths_df = bind_rows(age_deaths_df, age_deaths_df_tmp)
+    }
+    
+    age_deaths_df = age_deaths_df %>% group_by(Day) %>%
+        summarize_all('mean', na.rm = T) %>% ungroup()
+    write_csv(age_deaths_df, path=file.path(data_dir,"AgeGroupsCF_mean.csv"))
+    return(age_deaths_df)
+}
