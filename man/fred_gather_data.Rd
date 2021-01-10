@@ -11,6 +11,7 @@ fred_gather_data(
   FUN,
   FUN2 = function(x) {     return(x) },
   rm_out = FALSE,
+  appendToFile = FALSE,
   ...
 )
 }
@@ -24,6 +25,8 @@ fred_gather_data(
 \item{FUN2}{function to post-process data}
 
 \item{rm_out}{shuold remove output directory if exists?}
+
+\item{appendToFile}{(default to FALSE) should it bind rows of df or append to file?}
 }
 \value{
 returns 0 if things worked fine

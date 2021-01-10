@@ -319,13 +319,15 @@ submit_jobs = function(experiment_supername_in,
 #' @param FUN function to check if simulations finished
 #' @param FUN2 function to post-process data
 #' @param rm_out shuold remove output directory if exists?
+#' @param appendToFile (default to FALSE) should it bind rows of df or append to file?
 #' @return returns 0 if things worked fine
 #' 
 #' @export
 #' @examples
 #' fred_gather_data("parameters.csv", "FRED_Sims_out")
 fred_gather_data <- function(params,outdir, outfile,
-                               FUN, FUN2=function(x){return(x)}, rm_out = FALSE,...){
+                             FUN, FUN2=function(x){return(x)}, rm_out = FALSE,
+                             appendToFile = FALSE,...){
     if(dir.exists(outdir) & rm_out == TRUE){
         unlink(outdir, recursive = T)
         dir.create(outdir)
@@ -343,26 +345,61 @@ fred_gather_data <- function(params,outdir, outfile,
         mutate(Finished = 0)
     fred_output = tibble()
     params_finished = tibble()
+    total_finished = 0
     if(file.exists(file.path(Sys.getenv('FRED_RESULTS'),'KEY'))){
+        success_read = FALSE
+        nn = 1
+        while(!success_read){
+            if(FUN(params_orig[nn,])){
+                job_processed_list = FUN2(params_orig$job_id[nn],...)
+                job_processed = job_processed_list$job_df %>%
+                    mutate(job_id = params_orig$job_id[nn],
+                           Finished = 0)
+                fred_output = job_processed[rep(1:nrow(job_processed), nrow(params_orig)),]
+                success_read = TRUE
+            }
+            nn = nn + 1
+        }
+        if(nrow(fred_output) == 0){
+            printf("Something went wrong with reading FRED output\n")
+            stop()
+        }
+        output_indices = seq(from=1, by = 1, to = nrow(job_processed))
+        job_rows = nrow(job_processed)
+        print(sprintf("Total rows for dataframe in collected data: %d each %d rows\n", nrow(fred_output), job_rows))
         for(n in 1:nrow(params_orig)){
             if(FUN(params_orig[n,])){                
                 params_orig$Finished[n] = 1
                 params_tmp = params_orig[n,]
                 job_processed_list = FUN2(params_orig$job_id[n],...)
                 job_processed = job_processed_list$job_df %>%
-                    mutate(job_id = params_orig$job_id[n])
+                    mutate(job_id = params_orig$job_id[n],
+                           Finished = 1)
                 if(length(grep("extra_params_df", names(job_processed_list))) > 0){
                     params_tmp = bind_cols(params_tmp[rep(1,nrow(job_processed_list$extra_params_df)),],
                                            job_processed_list$extra_params_df)
                 }
                 ## Can do this faster if initialize object instead of bind_rows
                 params_finished = bind_rows(params_finished, params_tmp)
-                fred_output = bind_rows(fred_output, job_processed)                
-            }    
+                if(appendToFile == FALSE){
+                    output_indx = output_indices + job_rows * (n - 1)
+                    fred_output[output_indx,colnames(job_processed)] = job_processed
+                }else{
+                    if(total_finished == 0){
+                        write_csv(job_processed, path = outfile, append = FALSE)
+                    }else{
+                        write_csv(job_processed, path = outfile, append = TRUE)
+                    }
+                }
+                total_finished = total_finished + 1
+            }
         }
     }    
     params_outfile = file.path(outdir, 'FRED_parameters_out.csv')
     write_csv(x=params_finished, path=params_outfile)
-    write_csv(fred_output, path=outfile)
+    if(appendToFile == FALSE){
+        fred_output = fred_output %>% filter(Finished == 1)
+        write_csv(fred_output, path=outfile)
+    }
     return(0)
 }

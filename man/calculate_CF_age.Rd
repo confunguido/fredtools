@@ -8,13 +8,18 @@ Takes the output from infectionsCF and computes the age}
 calculate_CF_age(
   fred_key,
   fred_n,
-  brk_ages_cf_in = c(seq(from = 0, by = 10, to = 80), 120)
+  brk_ages_cf_in = c(seq(from = 0, by = 10, to = 80), 120),
+  save_file = FALSE
 )
 }
 \arguments{
 \item{fred_key}{key of fred job}
 
 \item{fred_n}{replicate of the FRED job to calculate R0 over}
+
+\item{save_file}{should it save results to a file?}
+
+\item{age_brks}{breaks for ages}
 }
 \value{
 a list of dataframes: periods has the inf and symp periods, intervals the serial intervals
