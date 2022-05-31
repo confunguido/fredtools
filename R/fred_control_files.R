@@ -8,8 +8,7 @@
 #' @export
 #' @examples
 #' write_fred_parameters(scalars, 'params.txt', 'simfiles','fred_params')
-write_fred_parameters = function(scalars.in, defaults.file, dir.in, basename.in='fred_params', fred_defaults='./FRED/input_files/defaults'){
-    
+write_fred_parameters = function(scalars.in, defaults.file, dir.in, basename.in='fred_params', fred_defaults='./FRED/input_files/defaults'){    
     ## read default values from defaults.file
     conn = file(defaults.file, "r")
     default_lines = readLines(conn)
@@ -214,7 +213,9 @@ write_submission_array = function(experiment_supername_in,
 #$ -l h_rt=JOBWALLTIME
 setenv FRED_HOME FREDHOMESTR
 setenv PATH \"${FRED_HOME}/bin:$PATH\"
-setenv FRED_RESULTS FREDRESULTSSTR
+setenv FRED_SCR_RESULTS FREDRESULTSSTR
+
+setenv FRED_RESULTS /tmp/FRED_RESULTS
 
 set file='TMPCMDFILE'
 set cmd=`head -n ${SGE_TASK_ID} $file | tail -n 1`
@@ -222,6 +223,10 @@ set cmd=`head -n ${SGE_TASK_ID} $file | tail -n 1`
 cd EXPERIMENTDIR
 
 eval $cmd
+
+cp -r ${FRED_RESULTS}/JOB/${SGE_TASK_ID} ${FRED_SCR_RESULTS}/JOB/${SGE_TASK_ID}
+rm -rf ${FRED_RESULTS}/JOB/${SGE_TASK_ID}
+
 #fred_delete -f -k JOBBASE_${SGE_TASK_ID} 
 #fred_job -p PARAMSBASE_${SGE_TASK_ID}.txt -k JOBBASE_${SGE_TASK_ID} -n REPS
 "    
