@@ -395,12 +395,10 @@ submit_jobs = function(experiment_supername_in,
                 fred_home_dir_in=fred_home_dir_in,
                 fred_results_in=fred_results_in)
         }
-        if(submit_job){
-            if(subsys == "UGE" | subsys == "UGE"){
-                system(sprintf("qsub %s", submission_file))
-            }else if(subsys == "SLURM"){
-                system(sprintf("sbatch %s", submission_file))
-            }
+        if(subsys == "UGE" | subsys == "UGE"){
+            system(sprintf("qsub %s", submission_file))
+        }else if(subsys == "SLURM"){
+            system(sprintf("sbatch %s", submission_file))
         }
         if(delete_files == TRUE){
             unlink(submission_file)
