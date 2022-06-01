@@ -90,6 +90,81 @@ write_fred_parameters = function(scalars.in, defaults.file, dir.in, basename.in=
     }
 }
 
+#' Writes a submission script for a job array
+#' This function takes specific parameters and creates the submission script that can be used later on to submit a job array of simulations
+#' 
+#' @param experiment_supername_in input the main name of the experiment, assuming there will be subexperiments for each submission
+#' @param experiment_name_in input the name of the main experiment, would probably be the same as experiment_dir_in, except the experiment_dir_in can have a different path
+#' @param experiment_dir_in input is the name of the main directory where the simulations will be located
+#' @param params_base prefix of parameters file
+#' @param job_base prefix of job key
+#' @param reps repetitions for each job
+#' @param n total simulations
+#' 
+#' @return a .sh file that is written to memory
+#' @export
+#' @examples
+#' 
+#' write_submission_array_slurm(
+#'    executable_path_in = executable_path,
+#'    input_files_path_in = input_files_path,
+#'    experiment_supername_in = experiment_supername,
+#'    experiment_name_in = experiment_name,
+#'    experiment_dir_in = experiment_dir,
+#'    unique_ID_vector = unique_SIM_IDs)
+#' 
+write_submission_array_slurm = function(experiment_supername_in,
+                                  experiment_name_in,
+                                  experiment_dir_in,
+                                  params_base,
+                                  job_base,
+                                  reps, scalars, FUN, cores_in=1, walltime_in = "0:45:00",
+                                  fred_home_dir_in="~/Coronavirus/FRED", fred_results_in="~/Coronavirus/FRED_RESULTS"){
+    print('submit array')
+    jobname = sprintf("%s-%s",experiment_supername_in, experiment_name_in)
+    tmp_cmd_file = sprintf('tmp_execute_cmd_%s.txt',jobname)
+    FUN(scalars, tmp_cmd_file)
+    n = nrow(scalars)
+    submission_template = "#!/bin/bash
+#SBATCH --job-name=JOBNAME
+#SBATCH --array=1-JOBSQUEUE
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=JOBCORES
+#SBATCH --time=9:00:00                        # Time limit hrs:min:sec
+#SBATCH --output=errors_job_%j.log            # Standard output and error log
+
+#module load R/3.5.0
+#cd $SLURM_WORKDIR
+
+export FRED_HOME=FREDHOMESTR
+export FRED_RESULTS=FREDRESULTSSTR
+export PATH=${FRED_HOME}/bin:$PATH
+
+file='TMPCMDFILE'
+cmd=`head -n ${SLURM_ARRAY_TASK_ID} $file | tail -n 1`
+cd EXPERIMENTDIR
+eval $cmd
+"
+    submission_str = submission_template %>%
+        str_replace_all(pattern="JOBNAME", replacement = jobname) %>%
+        str_replace_all(pattern="EXPERIMENTDIR", replacement = experiment_dir_in) %>%
+        str_replace_all(pattern="FREDHOMESTR", replacement = fred_home_dir_in) %>%
+        str_replace_all(pattern="FREDRESULTSSTR", replacement = fred_results_in) %>%
+        str_replace_all(pattern="JOBWALLTIME", replacement = walltime_in) %>%
+        str_replace_all(pattern="JOBSQUEUE", replacement = as.character(n)) %>%
+        str_replace_all(pattern="PARAMSBASE", replacement = params_base) %>%
+        str_replace_all(pattern="JOBBASE", replacement = job_base) %>%
+        str_replace_all(pattern="REPS", replacement = as.character(reps)) %>%
+        str_replace_all(pattern="TMPCMDFILE", replacement = tmp_cmd_file) %>%
+        str_replace_all(pattern="JOBCORES", replacement = as.character(cores_in))
+
+    submission_file = sprintf("run_files/%s-%s.sh",experiment_supername_in,experiment_name_in)
+    file.connection = file(submission_file)
+    write(submission_str,file.connection)
+    close(file.connection)
+    return(submission_file)
+}
+
 
 #' Writes a submission script for a job array
 #' This function takes specific parameters and creates the submission script that can be used later on to submit a job array of simulations
@@ -306,8 +381,27 @@ submit_jobs = function(experiment_supername_in,
                 reps = reps, scalars = scalars, FUN = FUN,
                 cores_in = cores_in,walltime_in=walltime_in,
                 fred_home_dir_in=fred_home_dir_in, fred_results_in=fred_results_in)
+        }else if(subsys == "SLURM"){
+            submission_file = write_submission_array_slurm(
+                experiment_supername_in = experiment_supername_in,
+                experiment_name_in = experiment_name_in,
+                experiment_dir_in = experiment_dir_in,
+                params_base = params_base,
+                job_base = job_base,
+                reps = reps, scalars = scalars,
+                FUN = FUN,
+                cores_in = cores_in,
+                walltime_in=walltime_in,
+                fred_home_dir_in=fred_home_dir_in,
+                fred_results_in=fred_results_in)
         }
-        system(sprintf("qsub %s", submission_file))
+        if(submit_job){
+            if(subsys == "UGE" | subsys == "UGE"){
+                system(sprintf("qsub %s", submission_file))
+            }else if(subsys == "SLURM"){
+                system(sprintf("sbatch %s", submission_file))
+            }
+        }
         if(delete_files == TRUE){
             unlink(submission_file)
         }   
