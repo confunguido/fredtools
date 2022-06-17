@@ -158,7 +158,7 @@ eval $cmd
         str_replace_all(pattern="TMPCMDFILE", replacement = tmp_cmd_file) %>%
         str_replace_all(pattern="JOBCORES", replacement = as.character(cores_in))
 
-    submission_file = sprintf("run_files/%s-%s.sh",experiment_supername_in,experiment_name_in)
+    submission_file = sprintf("%s-%s.sh",experiment_supername_in,experiment_name_in)
     file.connection = file(submission_file)
     write(submission_str,file.connection)
     close(file.connection)
@@ -395,7 +395,7 @@ submit_jobs = function(experiment_supername_in,
                 fred_home_dir_in=fred_home_dir_in,
                 fred_results_in=fred_results_in)
         }
-        if(subsys == "UGE" | subsys == "UGE"){
+        if(subsys == "UGE" | subsys == "PBS"){
             system(sprintf("qsub %s", submission_file))
         }else if(subsys == "SLURM"){
             system(sprintf("sbatch %s", submission_file))
