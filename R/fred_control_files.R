@@ -290,7 +290,7 @@ setenv FRED_HOME FREDHOMESTR
 setenv PATH \"${FRED_HOME}/bin:$PATH\"
 setenv FRED_SCR_RESULTS FREDRESULTSSTR
 
-setenv FRED_RESULTS /tmp/FRED_RESULTS
+setenv FRED_RESULTS /tmp/FRED_RESULTS_${SGE_TASK_ID}
 
 set file='TMPCMDFILE'
 set cmd=`head -n ${SGE_TASK_ID} $file | tail -n 1`
@@ -299,8 +299,8 @@ cd EXPERIMENTDIR
 
 eval $cmd
 
-cp -r ${FRED_RESULTS}/JOB/${SGE_TASK_ID} ${FRED_SCR_RESULTS}/JOB/${SGE_TASK_ID}
-rm -rf ${FRED_RESULTS}/JOB/${SGE_TASK_ID}
+mv ${FRED_RESULTS}/JOB/${SGE_TASK_ID} ${FRED_SCR_RESULTS}/JOB/${SGE_TASK_ID}
+rm -rfv ${FRED_RESULTS}
 
 #fred_delete -f -k JOBBASE_${SGE_TASK_ID} 
 #fred_job -p PARAMSBASE_${SGE_TASK_ID}.txt -k JOBBASE_${SGE_TASK_ID} -n REPS
