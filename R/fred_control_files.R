@@ -290,7 +290,9 @@ setenv FRED_HOME FREDHOMESTR
 setenv PATH \"${FRED_HOME}/bin:$PATH\"
 setenv FRED_SCR_RESULTS FREDRESULTSSTR
 
-setenv FRED_RESULTS /tmp/FRED_RESULTS_${SGE_TASK_ID}
+##setenv FRED_RESULTS /tmp/tmp_RANDOMTMP/FRED_RESULTS_${SGE_TASK_ID}
+setenv FRED_RESULTS $(/usr/bin/mktemp -d /tmp/tmp.XXXXXXXX)
+
 
 set file='TMPCMDFILE'
 set cmd=`head -n ${SGE_TASK_ID} $file | tail -n 1`
